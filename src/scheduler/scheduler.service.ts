@@ -18,7 +18,7 @@ export class SchedulerService {
         @InjectBot() private readonly bot: Telegraf<Context>,
     ) { }
 
-    @Cron(CronExpression.EVERY_10_SECONDS)
+    @Cron(CronExpression.EVERY_DAY_AT_9AM)
     async handleDailyCron() {
         this.logger.log('Running daily expiration check...');
         const items = await this.sheetsService.checkExpirations();
