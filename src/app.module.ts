@@ -1,32 +1,44 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TelegrafModule } from 'nestjs-telegraf';
 import { ScheduleModule } from '@nestjs/schedule';
-import { envValidationSchema } from './config/env.validation';
+import { TelegrafModule } from 'nestjs-telegraf';
 import { BotModule } from './bot/bot.module';
-import { SheetsModule } from './sheets/sheets.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { SheetsModule } from './sheets/sheets.module';
+import { envValidationSchema } from './config/env.validation';
+import { DynamicConfigService } from './config/dynamic-config.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true,
       validationSchema: envValidationSchema,
+      isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         token: configService.get<string>('BOT_TOKEN')!,
-        include: [BotModule, SchedulerModule],
+        middlewares: [
+          async (ctx, next) => {
+            if (ctx.updateType === 'message') {
+              if (ctx.chat?.type !== 'private') {
+                return;
+              }
+            }
+            return next();
+          },
+        ],
+        include: [BotModule],
       }),
       inject: [ConfigService],
     }),
-    ScheduleModule.forRoot(),
     BotModule,
-    SheetsModule,
     SchedulerModule,
+    SheetsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [DynamicConfigService],
+  exports: [DynamicConfigService],
 })
 export class AppModule { }

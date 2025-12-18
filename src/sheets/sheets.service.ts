@@ -13,16 +13,26 @@ interface ExpirationItem {
     number: string;
 }
 
+import { DynamicConfigService } from '../config/dynamic-config.service';
+
 @Injectable()
 export class SheetsService {
     private readonly logger = new Logger(SheetsService.name);
 
-    constructor(private readonly configService: ConfigService) { }
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly dynamicConfigService: DynamicConfigService,
+    ) { }
 
     async checkExpirations(): Promise<ExpirationItem[]> {
         try {
             const credsPath = this.configService.get<string>('GOOGLE_CREDENTIALS_PATH')!;
-            const sheetId = this.configService.get<string>('GOOGLE_SPREADSHEET_ID')!;
+            const sheetId = this.dynamicConfigService.get<string>('GOOGLE_SPREADSHEET_ID') || this.configService.get<string>('GOOGLE_SPREADSHEET_ID');
+
+            if (!sheetId) {
+                this.logger.error('GOOGLE_SPREADSHEET_ID not set in config or dynamic config');
+                return [];
+            }
 
             const fullPath = path.resolve(process.cwd(), credsPath);
 
@@ -43,6 +53,8 @@ export class SheetsService {
             await doc.loadInfo();
 
             const sheet = doc.sheetsByIndex[0];
+
+            await sheet.loadHeaderRow(2);
             const rows = await sheet.getRows();
 
             const items: ExpirationItem[] = [];
@@ -59,7 +71,7 @@ export class SheetsService {
                 const type = String(values[2]).trim();
                 const department = String(values[3]).trim();
                 const number = String(values[4]).trim();
-                const dateStr = String(values[values.length - 2]).trim();
+                const dateStr = String(values[7]).trim();
                 const expirationDate = this.parseDate(dateStr);
                 if (!expirationDate) continue;
 
@@ -67,12 +79,10 @@ export class SheetsService {
 
                 const diffTime = expirationDate.getTime() - today.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
                 if ([60, 53, 36, 29, 22, 15, 8, 1, 0].includes(diffDays)) {
                     items.push({ name, daysRequest: diffDays, type, department, number });
                 }
             }
-
             return items;
         } catch (error) {
             this.logger.error('Error checking sheets:', error);

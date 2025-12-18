@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { Context, Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 
+import { DynamicConfigService } from '../config/dynamic-config.service';
+
 @Injectable()
 export class SchedulerService {
     private readonly logger = new Logger(SchedulerService.name);
@@ -12,6 +14,7 @@ export class SchedulerService {
     constructor(
         private readonly sheetsService: SheetsService,
         private readonly configService: ConfigService,
+        private readonly dynamicConfigService: DynamicConfigService,
         @InjectBot() private readonly bot: Telegraf<Context>,
     ) { }
 
@@ -25,7 +28,7 @@ export class SchedulerService {
             return;
         }
 
-        const chatId = this.configService.get<string>('TARGET_CHAT_ID');
+        const chatId = this.dynamicConfigService.get<string>('TARGET_CHAT_ID') || this.configService.get<string>('TARGET_CHAT_ID');
         if (!chatId) {
             this.logger.error('TARGET_CHAT_ID not configured');
             return;
@@ -58,8 +61,14 @@ Nomi: <b>${item.name}</b>
             try {
                 await this.bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML' });
                 this.logger.log(`Sent notification for ${item.name}`);
-            } catch (e) {
-                this.logger.error(`Failed to send notification for ${item.name}`, e);
+            } catch (error) {
+                if (error?.response?.parameters?.migrate_to_chat_id) {
+                    const newChatId = error.response.parameters.migrate_to_chat_id;
+
+                    await this.bot.telegram.sendMessage(newChatId, message, { parse_mode: 'HTML' });
+                } else {
+                    this.logger.error(`Failed to send notification for ${item.name}`, error);
+                }
             }
         }
 

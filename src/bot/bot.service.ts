@@ -13,7 +13,7 @@ export class BotService implements OnApplicationBootstrap, OnApplicationShutdown
     ) { }
 
     async onApplicationBootstrap() {
-        const chatId = this.configService.get<string>('TARGET_CHAT_ID');
+        const chatId = this.configService.get<string>('BOT_ADMIN');
         if (chatId) {
             try {
                 await this.bot.telegram.sendMessage(chatId, '🚀 <b>Bot ishga tushdi!</b>', { parse_mode: 'HTML' });
@@ -25,7 +25,7 @@ export class BotService implements OnApplicationBootstrap, OnApplicationShutdown
     }
 
     async onApplicationShutdown(signal?: string) {
-        const chatId = this.configService.get<string>('TARGET_CHAT_ID');
+        const chatId = this.configService.get<string>('BOT_ADMIN');
         if (chatId) {
             try {
                 await this.bot.telegram.sendMessage(
