@@ -44,9 +44,9 @@ Bo'lim: <i>${item.department}</i>
 Raqam: <code>${item.number}</code>
 Nomi: <b>${item.name}</b>
 
-⏰ Muddati BUGUN tugaydi!
+⏰ Muddati <b>BUGUN</b> tugaydi!
 `;
-            } else {
+            } else if (item.daysRequest > 0) {
                 message = `
 📅 <b>Eslatma</b>
 
@@ -55,6 +55,16 @@ Raqam: <code>${item.number}</code>
 Nomi: <b>${item.name}</b>
 
 🕒 Muddati tugashiga <b>${item.daysRequest} kun</b> qoldi.
+`;
+            } else {
+                message = `
+🚨 <b>KECHIKDI</b>
+
+Bo'lim: <i>${item.department}</i>
+Raqam: <code>${item.number}</code>
+Nomi: <b>${item.name}</b>
+
+⛔ Muddati tugaganiga <b>${Math.abs(item.daysRequest)} kun</b> bo‘ldi.
 `;
             }
 

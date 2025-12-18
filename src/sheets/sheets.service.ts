@@ -79,7 +79,7 @@ export class SheetsService {
 
                 const diffTime = expirationDate.getTime() - today.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if ([60, 53, 36, 29, 22, 15, 8, 1, 0].includes(diffDays)) {
+                if ([60, 53, 36, 29, 22, 15, 8, 1, 0].includes(diffDays) || diffDays < 0) {
                     items.push({ name, daysRequest: diffDays, type, department, number });
                 }
             }
